@@ -1,8 +1,8 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-from analytics import calculate_kpis
-from data_processing import load_sample_data
+from utils.analytics import calculate_kpis
+from utils.data_processing import load_sample_data
 
 # Set page configuration
 st.set_page_config(page_title="Sales_Analytics_Dashboard", layout="wide")
