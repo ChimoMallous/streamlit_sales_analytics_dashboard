@@ -12,3 +12,15 @@ def calculate_kpis(df):
         'unique_customers': df['Customer_ID'].nunique() if 'Customer_ID' in df.columns else 0
     }
     return kpis
+
+# Create function to calculate revenue by category
+def revenue_by_category(df):
+    category_revenue = df.groupby('Category')['Revenue'].sum().reset_index() 
+    category_revenue = category_revenue.sort_values('Revenue', ascending=False)
+    return category_revenue
+
+# Create function to calculate revenue by region
+def revenue_by_region(df):
+    region_rev = df.groupby('Region')['Revenue'].sum().reset_index()
+    region_rev = region_rev.sort_values('Revenue', ascending=False)
+    return region_rev
