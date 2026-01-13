@@ -13,20 +13,30 @@ df = pd.DataFrame()
 if st.button("Load Sample Data"):
     with st.spinner("Loading sample data..."):
         df = load_sample_data()
+        st.caption(f"Loaded {len(df)} records")
 
 # Main dashboard, only show if data is loaded
 if not df.empty:
     st.subheader("Sales Data Overview")
+
+    # Display data head and summary statistics side by side
     main_col1, main_col2 = st.columns(2)
-
     with main_col1:
-        with st.expander("View Data Head (5 rows)"):
-            st.dataframe(df.head(5))
+        with st.expander("View Data Head (8 rows)"):
+            st.dataframe(df.head(8))
+    with main_col2:
+        with st.expander("View Summary Statistics"):
+            st.dataframe(df.describe())
 
-        # Calculate and display KPIs
+    # Display KPIs in a bordered container
+    with st.container(border=True):
         st.subheader("Key Performance Indicators (KPIs)")
         kpis = calculate_kpis(df)
         kpi_col1, kpi_col2, kpi_col3 = st.columns(3)
-        kpi_col1.metric("Total Revenue", f"${kpis['total_revenue']:,.2f}")
-        kpi_col2.metric("Total Profit", f"${kpis['total_profit']:,.2f}")
-        kpi_col3.metric("Total Orders", f"{kpis['total_orders']:,}")      
+        kpi_col1.metric("Total Revenue", f"${kpis['total_revenue']:,.0f}")
+        kpi_col2.metric("Total Profit", f"${kpis['total_profit']:,.0f}")
+        kpi_col3.metric("Average Order Value", f"${kpis['average_order_value']:,.0f}")
+        kpi_col1.metric("Total Orders", f"{kpis['total_orders']:,}")    
+        kpi_col2.metric("Total Units Sold", f"{kpis['total_units_sold']:,}")
+        kpi_col3.metric("Unique Customers", f"{kpis['unique_customers']:,}")
+
