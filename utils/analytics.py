@@ -13,6 +13,12 @@ def calculate_kpis(df):
     }
     return kpis
 
+def convert_date(df):
+    if 'Date' in df.columns:
+        df['Date'] = pd.to_datetime(df['Date'], errors='coerce')
+        df.dropna(subset=['Date'], inplace=True)
+    return df
+
 # Create function to calculate revenue by category
 def revenue_by_category(df):
     category_revenue = df.groupby('Category')['Revenue'].sum().reset_index() 
@@ -25,9 +31,9 @@ def revenue_by_region(df):
     region_rev = region_rev.sort_values('Revenue', ascending=False)
     return region_rev
 
-# Create function to calculate revenue by month
-def revenue_by_month(df):
-    df['Month'] = pd.to_datetime(df['Date']).dt.to_period('M')
-    rev_by_month = df.groupby("Month")['Revenue'].sum().reset_index()
-    rev_by_month['Month'] = rev_by_month['Month'].astype(str)
-    return rev_by_month
+# Create function to calculate revenue by day with monthly
+def revenue_by_day(df):
+    if 'Date' not in df.columns:
+        return pd.DataFrame()
+    rev_by_day = df.groupby('Date')['Revenue'].sum().reset_index()
+    return rev_by_day

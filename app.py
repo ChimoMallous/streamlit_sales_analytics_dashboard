@@ -2,13 +2,16 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import plotly.express as px
-from utils.analytics import calculate_kpis, revenue_by_region, revenue_by_category, revenue_by_month
+from utils.analytics import calculate_kpis, revenue_by_region, revenue_by_category, revenue_by_day, convert_date
 from utils.data_processing import load_sample_data
 
 # Set page configuration
 st.set_page_config(page_title="Sales_Analytics_Dashboard", layout="wide")
 st.title("Sales Analytics Dashboard")
-df = pd.DataFrame()
+
+# Initialize session state for data storage
+if 'df_original' not in st.session_state:
+    st.session_state.df_original = pd.DataFrame()
 
 # Required columns
 REQUIRED_COLUMNS = ['Revenue', 'Profit', 'Units_Sold', 'Customer_ID', 'Category', 'Region']
@@ -17,22 +20,47 @@ REQUIRED_COLUMNS = ['Revenue', 'Profit', 'Units_Sold', 'Customer_ID', 'Category'
 uploaded_file = st.file_uploader("Upload your sales data CSV file (required columns: Revenue, Profit, Units_Sold, Customer_ID, Category, Region)", type=["csv"])
 if uploaded_file is not None:
     with st.spinner("Loading data..."):
-        df = pd.read_csv(uploaded_file)
-        st.caption(f"Loaded {len(df)} records")
+        st.session_state.df_original = pd.read_csv(uploaded_file)
+        st.caption(f"Loaded {len(st.session_state.df_original)} records")
 
 # Add button to load sample data
 if st.button("Load Sample Data"):
     with st.spinner("Loading sample data..."):
-        df = load_sample_data()
-        st.caption(f"Loaded {len(df)} records")
+        st.session_state.df_original = load_sample_data()
+        st.caption(f"Loaded {len(st.session_state.df_original)} records")
 
-# Main dashboard, only show if data is loaded
-if not df.empty:
+# MAIN DASHBOARD: Only display IF data is loaded
+if not st.session_state.df_original.empty:
+
+    # Start with original data
+    df = st.session_state.df_original.copy()
+
     # Check for required columns
     missing_cols = [col for col in REQUIRED_COLUMNS if col not in df.columns]
     if missing_cols:
         st.error(f"The following required columns are missing from the data: {', '.join(missing_cols)}")
+        st.stop()
 
+    # Convert date if exists
+    df = convert_date(df)
+
+    # Filters in sidebar
+    with st.sidebar:
+        st.header("Filters")
+
+        # Date range filter
+        if 'Date' in df.columns:
+            min_Date = df['Date'].min()
+            max_Date= df['Date'].max()
+            date_range = st.date_input("Select Date Range", [min_Date, max_Date], min_value=min_Date, max_value=max_Date)
+            if len(date_range) == 2:
+                df = df[(df['Date'] >= pd.to_datetime(date_range[0])) & (df['Date'] <= pd.to_datetime(date_range[1]))]
+            # Add button to reset date range filter
+            if st.button("Reset Date Filter"):
+                df = st.session_state.df_original.copy()
+                df = convert_date(df)
+                
+                
     # Display KPIs in a bordered container
     with st.container(border=True):
         st.subheader("Key Performance Indicators (KPIs)")
@@ -59,14 +87,15 @@ if not df.empty:
             category_data = revenue_by_category(df)
             fig = px.bar(category_data, x='Category', y='Revenue', title='Revenue by Category', color='Revenue', color_continuous_scale=px.colors.sequential.Blues_r)
             st.plotly_chart(fig, use_container_width=True)
-    
-    # Display revenue over time by month
 
+    # Display revenue over time by day with monthly ticks
     with st.container(border=True):
         st.subheader("Revenue Over Time")
-        monthly_revenue = revenue_by_month(df)
-        fig = px.line(monthly_revenue, x='Month', y='Revenue', title='Revenue by Month', markers=True)
-        fig.update_xaxes(dtick="M1")
+        daily_revenue = revenue_by_day(df)
+
+
+        fig = px.line(daily_revenue, x='Date', y='Revenue', title='Revenue by Day', markers=True)
+        fig.update_xaxes(tickangle=-45)
         st.plotly_chart(fig, use_container_width=True)
 
     # Display data head and summary statistics side by side
@@ -74,7 +103,7 @@ if not df.empty:
         st.subheader("Sales Data Overview")
         preview_col1, preview_col2 = st.columns(2)
         with preview_col1:
-            with st.expander("View Data Head (8 rows)"):
+            with st.expander("View Data Header"):
                 st.dataframe(df.head(8))
         with preview_col2:
             with st.expander("View Summary Statistics"):
